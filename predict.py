@@ -189,28 +189,3 @@ if __name__ == "__main__":
         'Leader',
         'Winner'
         ]])
-
-    odds = {
-        'Biden': 1.27,
-        'Trump': 4.6
-    }
-
-    true_odds = {
-        'Biden': .43,
-        'Trump': .57
-    }
-
-    total = sum([1/v for v in odds.values()])
-
-    bets = {k: 1/v/total for k, v in odds.items()}
-
-    assert np.isclose(sum(bets.values()), 1)
-
-    outcomes = {odds[k]*bets[k] for k in odds.keys()}
-    expected = sum([odds[k]*bets[k]*true_odds[k] for k in odds.keys()])
-
-    print(odds)
-    print(bets)
-    print(outcomes)
-
-    print(expected)
