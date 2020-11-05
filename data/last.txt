@@ -1,15 +1,9 @@
 Georgia
-16 electoral votes · 96 % reporting
-48,8 %
-2 344 050
-50 %
-2 404 279
-Michigan
-16 electoral votes · 99 % reporting
-49,9 %
-2 688 604
-48,6 %
-2 618 093
+16 electoral votes · 98 % reporting
+49,2 %
+2 407 589
+49,6 %
+2 430 156
 Nevada
 6 electoral votes · 75 % reporting
 49,3 %
@@ -23,35 +17,41 @@ North Carolina
 50,1 %
 2 732 084
 Pennsylvania
-20 electoral votes · 87 % reporting
-47 %
-2 843 347
-51,8 %
-3 135 761
+20 electoral votes · 89 % reporting
+48,1 %
+3 051 565
+50,7 %
+3 215 983
 Arizona
-11 electoral votes · 84 % reporting
-51 %
-1 411 235
-47,6 %
-1 318 219
+11 electoral votes · 88 % reporting
+50,5 %
+1 469 341
+48,1 %
+1 400 951
 Florida
-29 electoral votes · 96 % reporting
-47,9 %
-5 283 879
+29 electoral votes · 99 % reporting
+47,8 %
+5 283 904
 51,2 %
-5 658 388
+5 658 404
 Iowa
 6 electoral votes · 99 % reporting
 45 %
 757 580
 53,2 %
 896 286
+Michigan
+16 electoral votes · 99 % reporting
+50,5 %
+2 768 316
+48 %
+2 632 711
 New Hampshire
 4 electoral votes · 99 % reporting
 52,8 %
-422 463
+422 756
 45,6 %
-364 620
+364 889
 Ohio
 18 electoral votes · 96 % reporting
 45,2 %
@@ -60,13 +60,13 @@ Ohio
 3 074 418
 Texas
 38 electoral votes · 85 % reporting
-46,3 %
-5 166 253
-52,3 %
-5 832 055
+46,4 %
+5 195 186
+52,2 %
+5 848 303
 Wisconsin
 10 electoral votes · 99 % reporting
 49,6 %
-1 630 402
+1 630 542
 48,9 %
-1 609 885
+1 610 007

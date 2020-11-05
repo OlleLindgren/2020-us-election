@@ -30,8 +30,10 @@ def compute_situation(filename):
         'Votes Trump'
     ]
     df = pd.DataFrame(data=states, columns=columns)
+    
+    df.set_index('State', inplace=True)
     for col in df.columns:
-        df[col] = df[col].replace(',', '.', regex=True)
+        df[col] = df[col].replace(',', '.', regex=True).astype(float)
 
     def needed_for_victory(df, candidate, other):
         vote_diff = df[f'% {other}'].astype(float) - df[f'% {candidate}'].astype(float)
@@ -42,6 +44,9 @@ def compute_situation(filename):
 
     leverage, df['% Biden needs'] = needed_for_victory(df, 'Biden', 'Trump')
     _, df['% Trump needs'] = needed_for_victory(df, 'Trump', 'Biden')
+
+    df.sort_index(inplace=True)
+    leverage.sort_index(inplace=True)
 
     return leverage, df
 
@@ -62,10 +67,8 @@ def compute_electorals():
     return result
 
 if __name__ == "__main__":
-    leverage, before = compute_situation('04-11-10am')
-    _, after = compute_situation('last')
-    before = before.set_index('State').convert_dtypes()
-    after = after.set_index('State').convert_dtypes()
+    _, before = compute_situation('04-11-10am')
+    leverage, after = compute_situation('last')
 
     diff = pd.DataFrame(
         columns=before.columns,
@@ -75,7 +78,19 @@ if __name__ == "__main__":
     leverage.index = diff.index
 
     current = after
-    current['% Trump (new votes)'] = 50 + diff['% Trump'] * leverage
+    
+    current['# New votes'] = diff['Votes Biden'] + diff['Votes Trump']
+    current['# Votes'] = after['Votes Biden'] + after['Votes Trump']
+
+    assert np.alltrue((current['% Trump needs'] + current['% Biden needs']).values >= 99.9)
+
+    new_vote_leverage = (1 - .01*current['% Reporting'].astype(float)) / (current['# New votes'] / current['# Votes'].astype(float))
+
+    current['% Trump (new votes)'] = 50 + diff['% Trump'] * new_vote_leverage
+    current['% Biden (new votes)'] = 100 - current['% Trump (new votes)']
+
+    assert 0 < current['% Trump (new votes)'].min()
+    assert current['% Trump (new votes)'].max() < 100
 
     winner = [
         'Trump' if tr_get > tr_need else 'Biden'
@@ -88,7 +103,6 @@ if __name__ == "__main__":
     
     current['Leader'] = leader
     current['Winner'] = winner
-    current['# New votes'] = diff['Votes Biden'] + diff['Votes Trump']
 
     z = 2.33
     alpha = .99
@@ -98,9 +112,11 @@ if __name__ == "__main__":
     # +- alpha=.95 is the confidence interval at
 
     current[f'alpha={alpha}'].replace(np.inf, 0, inplace=True)
+    current[f'alpha={alpha}'].replace(-np.inf, 0, inplace=True)
+    current[f'alpha={alpha}'].fillna(0, inplace=True)
 
     current['z (new votes)'] = (current['% Trump (new votes)']- current['% Trump needs']) / (current[f'alpha={alpha}'] / z)
-    current['alpha (new votes)'] = current['z (new votes)'].apply(stats.norm.cdf)
+    current['P(Trump wins)'] = current['z (new votes)'].apply(stats.norm.cdf)
 
     print(current[[
         'Electoral votes',
@@ -111,7 +127,7 @@ if __name__ == "__main__":
         '% Trump (new votes)',
         '# New votes',
         f'alpha={alpha}',
-        'alpha (new votes)',
+        'P(Trump wins)',
         'Leader',
         'Winner'
         ]])
@@ -139,10 +155,15 @@ if __name__ == "__main__":
 
     election_result['Electoral Votes'] = electorals['Electoral Votes']
     election_result['Traditional'] = redblue['Vote']
-    election_result['Winnable Biden'] = current['% Biden needs'] < 100 - current['% Trump (new votes)'] + current[f'alpha={alpha}']
+    election_result['Winnable Biden'] = current['% Biden needs'] <= current['% Biden (new votes)'] + current[f'alpha={alpha}']
     election_result['Winnable Biden'].fillna(election_result['Traditional'] == 'blue', inplace=True)
-    election_result['Winnable Trump'] = current['% Trump needs'] < current['% Trump (new votes)'] + current[f'alpha={alpha}']
+    election_result['Winnable Trump'] = current['% Trump needs'] <= current['% Trump (new votes)'] + current[f'alpha={alpha}']
     election_result['Winnable Trump'].fillna(election_result['Traditional'] == 'red', inplace=True)
+
+    assert np.alltrue([
+        x or y for x, y in zip(
+            election_result['Winnable Trump'].values,
+            election_result['Winnable Biden'].values)])
 
     print(election_result)
 
@@ -159,6 +180,9 @@ if __name__ == "__main__":
 
     tht = election_result[election_result['Winnable Trump']]['Electoral Votes'].sum()
     thb = election_result[election_result['Winnable Biden']]['Electoral Votes'].sum()
+
+    #assert tht >= max(ct, ht)
+    #assert thb >= max(cb, hb)
 
     if tht < te / 2:
         thwin = 'Biden'
@@ -185,7 +209,7 @@ if __name__ == "__main__":
         '% Trump (new votes)',
         '# New votes',
         f'alpha={alpha}',
-        'alpha (new votes)',
+        'P(Trump wins)',
         'Leader',
         'Winner'
         ]])
