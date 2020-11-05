@@ -102,21 +102,29 @@ if __name__ == "__main__":
     ]
     
     current['Leader'] = leader
-    current['Winner'] = winner
+    current['Heading'] = winner
 
-    z = 2.33
     alpha = .99
 
-    current[f'alpha={alpha}'] = z * (current['% Trump (new votes)']*(1-current['% Trump (new votes)']/100)/current['# New votes']).apply(np.sqrt) * 100
+    trump_need = current['% Trump needs'] / 100
+    trump_up = (current['% Trump (new votes)'] - 50) / 100
+    z_mlt = (trump_up*(1-trump_up)/current['# New votes']).apply(np.sqrt) / (.25/current['# New votes']).apply(np.sqrt)
+    z_req = (trump_need*(1-trump_need)/current['# New votes']).apply(np.sqrt) / (.25/current['# New votes']).apply(np.sqrt)
+    z_ci = stats.norm.ppf((1 + alpha) / 2) * (z_mlt - z_req)
+    z_ci.fillna(0, inplace=True)
+
+    z_alpha = stats.norm.ppf((1+alpha)/2)
+    
+    current['P(Trump win)'] = stats.norm.cdf(z_mlt)
 
     # +- alpha=.95 is the confidence interval at
 
-    current[f'alpha={alpha}'].replace(np.inf, 0, inplace=True)
-    current[f'alpha={alpha}'].replace(-np.inf, 0, inplace=True)
-    current[f'alpha={alpha}'].fillna(0, inplace=True)
+    current['P(Trump win)'].replace(np.inf, 0, inplace=True)
+    current['P(Trump win)'].replace(-np.inf, 0, inplace=True)
+    current['P(Trump win)'].fillna(0, inplace=True)
 
-    current['z (new votes)'] = (current['% Trump (new votes)']- current['% Trump needs']) / (current[f'alpha={alpha}'] / z)
-    current['P(Trump wins)'] = current['z (new votes)'].apply(stats.norm.cdf)
+    current['z (new votes)'] = (current['% Trump (new votes)']- current['% Trump needs']) / (current['P(Trump win)'])
+    # current['P(Trump wins)'] = current['z (new votes)'].apply(stats.norm.cdf)
 
     print(current[[
         'Electoral votes',
@@ -126,10 +134,10 @@ if __name__ == "__main__":
         '% Trump needs',
         '% Trump (new votes)',
         '# New votes',
-        f'alpha={alpha}',
-        'P(Trump wins)',
+        'P(Trump win)',
+        #'P(Trump wins)',
         'Leader',
-        'Winner'
+        'Heading'
         ]])
 
     electorals = compute_electorals()
@@ -148,17 +156,29 @@ if __name__ == "__main__":
         columns=['Current', 'Heading'],
         index=electorals.index,
         data=[
-            current.loc[state, ['Leader','Winner']] if state in current.index else [electorals.loc[state, 'Traditional vote']]*2
+            current.loc[state, ['Leader','Heading']] if state in current.index else [electorals.loc[state, 'Traditional vote']]*2
             for state in electorals.index
         ]
     )
 
     election_result['Electoral Votes'] = electorals['Electoral Votes']
     election_result['Traditional'] = redblue['Vote']
-    election_result['Winnable Biden'] = current['% Biden needs'] <= current['% Biden (new votes)'] + current[f'alpha={alpha}']
+    election_result['Winnable Biden'] = current['% Biden needs'] <= current['% Biden (new votes)'] + z_alpha
     election_result['Winnable Biden'].fillna(election_result['Traditional'] == 'blue', inplace=True)
-    election_result['Winnable Trump'] = current['% Trump needs'] <= current['% Trump (new votes)'] + current[f'alpha={alpha}']
+    election_result['Winnable Trump'] = current['% Trump needs'] <= current['% Trump (new votes)'] + z_alpha
     election_result['Winnable Trump'].fillna(election_result['Traditional'] == 'red', inplace=True)
+
+    for ix in election_result.index:
+        if not (
+            election_result.loc[ix, 'Winnable Biden'] or
+            election_result.loc[ix, 'Winnable Trump']):
+            print('Unwinnable state:')
+            print(election_result.loc[ix])
+            print(f'Biden {alpha*100:.3f} % confidence bound:')
+            print((current['% Biden (new votes)'] + z_alpha).loc[ix])
+            print(f'Trump {alpha*100:.3f} % confidence bound:')
+            print((current['% Trump (new votes)'] + z_alpha).loc[ix])
+            print(f'z value: {z_alpha.loc[ix]:.3f}')
 
     assert np.alltrue([
         x or y for x, y in zip(
@@ -208,8 +228,8 @@ if __name__ == "__main__":
         '% Trump needs',
         '% Trump (new votes)',
         '# New votes',
-        f'alpha={alpha}',
-        'P(Trump wins)',
+        'P(Trump win)',
+        #'P(Trump wins)',
         'Leader',
-        'Winner'
+        'Heading'
         ]])
